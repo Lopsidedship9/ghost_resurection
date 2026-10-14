@@ -7,6 +7,7 @@
 #include "interactables.h"
 #include "screens.h"
 #include "audio_story.h"
+#include "game_ending.h"
 
 #include <cmath>
 #include <algorithm>
@@ -19,6 +20,8 @@ Image sprite;
 Image menu_play_image;
 Image menu_exit_image;
 Image control_tutorial_image;
+Image game_over_image;
+Image win_image;
 Color bgcolor(130, 80, 100);
 
 // --- Mapa (Tiled) ---
@@ -59,6 +62,12 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 	menu_exit_image.loadTGA("data/menu_exit_160x120.tga");
 	control_tutorial_image.loadTGA("data/tutorial_160x120.tga");
 
+	if (!win_image.loadTGA("data/victory_160x120.tga"))
+		std::cerr << "ERROR: no se encuentra data/win.tga" << std::endl;
+	
+	if (!game_over_image.loadTGA("data/gameover_160x120.tga"))
+		std::cerr << "ERROR: no se encuentra data/death.tga" << std::endl;
+
 	// Cargar la narracion en memoria al iniciar el juego.
 	if (!loadStoryAudio("data/historia.wav"))
 		std::cerr << "La partida continuara sin narracion." << std::endl;
@@ -86,6 +95,14 @@ void Game::render(void)
 	Image framebuffer(160, 120); //do not change framebuffer size
 
 	framebuffer.fill( bgcolor );
+
+	if (isGameEndingActive())
+	{
+		framebuffer.drawImage(win_image, 0, 0);
+		showFramebuffer(&framebuffer);
+		return;
+	}
+
 
 	//Si la historia se esta reproduciendo, mostrar la pantalla de tutorial y no actualizar el mundo.
 	if (story_playing)
@@ -120,6 +137,9 @@ void Game::render(void)
 
 void Game::update(double seconds_elapsed)
 {
+	// No seguir actualizando el mundo tras completar el juego.
+	if (isGameEndingActive())
+		return;
 	// Mientras se reproduce la historia, esperar a que termine.
 	if (story_playing)
 	{
@@ -152,7 +172,14 @@ void Game::update(double seconds_elapsed)
 	if (Input::wasKeyPressed(SDL_SCANCODE_Z) ||
 		Input::wasKeyPressed(SDL_SCANCODE_X))
 	{
-		std::cout << "Funcion de interaccion llamada" << std::endl;
+		// Primero comprobar si la interaccion activa la casilla final.
+		if (tryActivateGameEnding(world_map, player_x, player_y,
+			player_inventory.hearts_collected))
+		{
+			std::cout << "Juego completado!" << std::endl;
+			return;
+		}
+		//std::cout << "Funcion de interaccion llamada" << std::endl;
 		interactWithNearbyObject(world_map, player_x, player_y);
 	}
 
@@ -220,12 +247,36 @@ void Game::onKeyDown( SDL_KeyboardEvent event )
 	// Durante la narracion no permitir que se vuelva a seleccionar JUGAR.
 	if (story_playing)
 	{
+		if (event.keysym.sym == SDLK_x)
+		{
+			stopStoryAudio();
+			story_playing = false;
+			game_started = true;
+
+			std::cout << "Narracion interrumpida. Empieza la partida."
+				<< std::endl;
+		}
+		
 		if (event.keysym.sym == SDLK_ESCAPE) {
 			unloadStoryAudio();
 			story_playing = false;
 			must_exit = true;
 		}
 		return;
+	}
+
+	// Si se muestra la pantalla final, X vuelve al menu de inicio.
+	if (isGameEndingActive())
+	{
+		if (event.keysym.sym == SDLK_x)
+		{
+			resetGameEnding();
+			game_started = false;
+			story_playing = false;
+			selected_menu_option = 0;
+			std::cout << "Volviendo al menu de inicio." << std::endl;
+		}
+		return; // Ignorar las demas teclas mientras se muestra el final.
 	}
 	
 	if (!game_started)
