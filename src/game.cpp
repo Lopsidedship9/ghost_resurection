@@ -5,6 +5,7 @@
 #include "movement.h"
 
 #include <cmath>
+#include <algorithm>
 
 Game* Game::instance = NULL;
 
@@ -19,6 +20,11 @@ const int TILESET_COLUMNS = 49;
 GameMap* world_map = NULL;           // todas las capas del .tmj (Suelo, Edificios, personajes)
 bool tileset_ok = false;
 float cam_x = 0, cam_y = 0;    // camara en pixeles del mundo
+
+// Zoom de la camara: (preguntar)
+// 1.0 = normal, 2.0 = zoom x2 (se ve menos mundo), 0.5 = alejar (se ve mas mundo).
+const float CAMERA_ZOOM = 2.0f;
+
 
 int player_x = 2;
 int player_y = 1;
@@ -107,14 +113,22 @@ void Game::update(double seconds_elapsed)
 	//Read the keyboard state, to see all the keycodes: https://wiki.libsdl.org/SDL_Keycode
 	// mover la camara por el mapa con las flechas
 
-	// limitar la camara al tamano del mapa (framebuffer = 160x120)
+	// La camara sigue al jugador: lo mantiene centrado siempre que los
+	// limites del mapa lo permitan. El framebuffer mide 160x120 pixeles.
 	if (world_map) {
-		float max_x = world_map->width * world_map->tile_width - 160;
-		float max_y = world_map->height * world_map->tile_height - 120;
-		if (cam_x < 0) cam_x = 0;
-		if (cam_y < 0) cam_y = 0;
-		if (cam_x > max_x) cam_x = max_x;
-		if (cam_y > max_y) cam_y = max_y;
+		const float screen_center_x = 160.0f * 0.5f;
+		const float screen_center_y = 120.0f * 0.5f;
+
+		// Centro de la casilla del jugador, convertido a pixeles del mundo.
+		cam_x = player_x * world_map->tile_width + world_map->tile_width * 0.5f - screen_center_x;
+		cam_y = player_y * world_map->tile_height + world_map->tile_height * 0.5f - screen_center_y;
+
+		// Limitar la camara al tamano del mapa. max() evita valores negativos
+		// cuando el mapa es mas pequeno que la pantalla.
+		float max_x = std::max(0.0f, world_map->width * world_map->tile_width - 160.0f);
+		float max_y = std::max(0.0f, world_map->height * world_map->tile_height - 120.0f);
+		cam_x = std::max(0.0f, std::min(cam_x, max_x));
+		cam_y = std::max(0.0f, std::min(cam_y, max_y));
 	}
 
 	//example of 'was pressed'
