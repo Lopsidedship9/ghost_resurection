@@ -292,6 +292,7 @@ void Game::onKeyDown( SDL_KeyboardEvent event )
 			story_playing = false;
 			resetGhostAI();
 			selected_menu_option = 0;
+			restartAfterDeath();
 			std::cout << "Volviendo al menu de inicio." << std::endl;
 		}
 		return; // Ignorar las demas teclas mientras se muestra el final.
@@ -307,6 +308,7 @@ void Game::onKeyDown( SDL_KeyboardEvent event )
 			game_started = false;
 			story_playing = true;
 			selected_menu_option = 0;
+			restartAfterDeath();
 		}
 	}
 	
@@ -485,4 +487,28 @@ void Game::onAudio(float *buffer, unsigned int len, double time, SDL_AudioSpec& 
 {
 	//fill the audio buffer using our custom retro synth
 	synth.generateAudio(buffer, len, audio_spec);
+}
+
+void Game::restartAfterDeath()
+{
+	// Volver a cargar el mapa original.
+	world_map = loadGameMap("data/mapilla.tmj");
+
+	// Restaurar la posición inicial del jugador.
+	player_x = 18;
+	player_y = 22;
+
+	// Reiniciar la cámara.
+	cam_x = 0;
+	cam_y = 0;
+
+	// Reiniciar inventario y estado de los coleccionables.
+	player_inventory = PlayerInventory();
+
+	// Reiniciar el fantasma.
+	initGhostAI(2, 1);
+
+	// Volver al tutorial.
+	story_playing = true;
+	game_started = false;
 }
