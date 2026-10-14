@@ -3,6 +3,7 @@
 #include "input.h"
 #include "image.h"
 #include "movement.h"
+#include "collectables.h"
 
 #include <cmath>
 #include <algorithm>
@@ -25,9 +26,10 @@ float cam_x = 0, cam_y = 0;    // camara en pixeles del mundo
 // 1.0 = normal, 2.0 = zoom x2 (se ve menos mundo), 0.5 = alejar (se ve mas mundo).
 const float CAMERA_ZOOM = 2.0f;
 
-
-int player_x = 2;
-int player_y = 1;
+// --- Jugador e inventario ---
+int player_x = 18;
+int player_y = 22;
+PlayerInventory player_inventory;
 
 Game::Game(int window_width, int window_height, SDL_Window* window)
 {
@@ -99,6 +101,13 @@ void Game::update(double seconds_elapsed)
 		direction = MoveDirection::RIGHT;
 
 	movePlayer(world_map, player_x, player_y, direction, !must_exit);
+
+	// Si el jugador está sobre un objeto recogible, se añade al inventario.
+	if (collectObjectAt(world_map, player_x, player_y, player_inventory))
+	{
+		std::cout << "Objeto recogido. Corazones: "
+			<< player_inventory.hearts_collected << std::endl;
+	}
 
 	if (world_map)
 	{
