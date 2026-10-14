@@ -8,6 +8,7 @@
 #include "screens.h"
 #include "audio_story.h"
 #include "game_ending.h"
+#include "ghost_ai.h"
 
 #include <cmath>
 #include <algorithm>
@@ -82,6 +83,8 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 	else
 		std::cout << " + Mapa cargado: " << world_map->numLayers << " capas" << std::endl;
 
+	initGhostAI(2, 1);
+
 	//enableAudio(); //enable this line if you plan to add audio to your application
 	//synth.playSample("data/coin.wav",1,true);
 	//synth.osc1.amplitude = 0.5;
@@ -103,6 +106,13 @@ void Game::render(void)
 		return;
 	}
 
+	// Si el fantasma alcanza al jugador, mostrar la pantalla de muerte.
+	if (isGhostGameOver())
+	{
+		framebuffer.drawImage(game_over_image, 0, 0);
+		showFramebuffer(&framebuffer);
+		return;
+	}
 
 	//Si la historia se esta reproduciendo, mostrar la pantalla de tutorial y no actualizar el mundo.
 	if (story_playing)
@@ -140,6 +150,8 @@ void Game::update(double seconds_elapsed)
 	// No seguir actualizando el mundo tras completar el juego.
 	if (isGameEndingActive())
 		return;
+	if (isGhostGameOver())
+		return;
 	// Mientras se reproduce la historia, esperar a que termine.
 	if (story_playing)
 	{
@@ -168,6 +180,11 @@ void Game::update(double seconds_elapsed)
 		direction = MoveDirection::RIGHT;
 
 	movePlayer(world_map, player_x, player_y, direction, !must_exit);
+
+	updateGhostAI(world_map, player_x, player_y, seconds_elapsed);
+
+	if (isGhostGameOver())
+		return;
 
 	if (Input::wasKeyPressed(SDL_SCANCODE_Z) ||
 		Input::wasKeyPressed(SDL_SCANCODE_X))
@@ -273,6 +290,7 @@ void Game::onKeyDown( SDL_KeyboardEvent event )
 			resetGameEnding();
 			game_started = false;
 			story_playing = false;
+			resetGhostAI();
 			selected_menu_option = 0;
 			std::cout << "Volviendo al menu de inicio." << std::endl;
 		}
