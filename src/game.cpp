@@ -5,6 +5,7 @@
 #include "movement.h"
 #include "collectables.h"
 #include "interactables.h"
+#include "screens.h"
 
 #include <cmath>
 #include <algorithm>
@@ -14,6 +15,9 @@ Game* Game::instance = NULL;
 Image font;
 Image minifont;
 Image sprite;
+Image menu_play_image;
+Image menu_exit_image;
+Image control_tutorial_image;
 Color bgcolor(130, 80, 100);
 
 // --- Mapa (Tiled) ---
@@ -37,6 +41,8 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 	this->renderer = NULL;
 	instance = this;
 	must_exit = false;
+	game_started = false;
+	selected_menu_option = 0;
 
 	fps = 0;
 	frame = 0;
@@ -46,6 +52,9 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 	font.load("data/bitmap-font-white.tga"); //load bitmap-font image
 	minifont.load("data/mini-font-white-4x6.tga"); //load bitmap-font image
 	sprite.load("data/spritesheet.tga"); //example to load an sprite
+	menu_play_image.loadTGA("data/menu_play_160x120.tga");
+	menu_exit_image.loadTGA("data/menu_exit_160x120.tga");
+
 
 	// cargar tileset y mapa (todas las capas del .tmj)
 	tileset_ok = tileset.load("data/colored_packed.png");
@@ -70,6 +79,14 @@ void Game::render(void)
 
 	framebuffer.fill( bgcolor );
 
+	// Antes de empezar la partida, mostrar el menu de inicio.
+	if (!game_started)
+	{
+		renderStartMenu(framebuffer, menu_play_image, menu_exit_image, selected_menu_option);
+		showFramebuffer(&framebuffer);
+		return;
+	}
+
 	// avisos en pantalla si falta algo
 	if (!tileset_ok)
 		framebuffer.drawText("Falta data/tilemap_packed.png", 2, 2, minifont, 4, 6);
@@ -86,6 +103,9 @@ void Game::render(void)
 
 void Game::update(double seconds_elapsed)
 {
+	// No actualizar el mundo mientras se muestra el menu de inicio.
+	if (!game_started)
+		return;
 
 	// Leer una dirección y delegar el movimiento al módulo movement.cpp.
 	MoveDirection direction = MoveDirection::NONE;
@@ -114,6 +134,7 @@ void Game::update(double seconds_elapsed)
 			<< player_inventory.hearts_collected << std::endl;
 	}
 
+	/*
 	if (world_map)
 	{
 		float max_x = world_map->width * world_map->tile_width - 160;
@@ -122,7 +143,7 @@ void Game::update(double seconds_elapsed)
 		if (cam_y < 0) cam_y = 0;
 		if (cam_x > max_x) cam_x = max_x;
 		if (cam_y > max_y) cam_y = max_y;
-	}
+	}*/
 
 	//Read the keyboard state, to see all the keycodes: https://wiki.libsdl.org/SDL_Keycode
 	// mover la camara por el mapa con las flechas
@@ -167,10 +188,18 @@ void Game::update(double seconds_elapsed)
 //Keyboard event handler (sync input)
 void Game::onKeyDown( SDL_KeyboardEvent event )
 {
-	switch(event.keysym.sym)
+	if (!game_started)
 	{
-		case SDLK_ESCAPE: must_exit = true; break; //ESC key, kill the app
+		StartMenuAction action = handleStartMenuKey(event.keysym.sym, selected_menu_option);
+		if (action == START_MENU_PLAY)
+			game_started = true;
+		else if (action == START_MENU_EXIT)
+			must_exit = true;
+		return;
 	}
+	
+	if (event.keysym.sym == SDLK_ESCAPE)
+		must_exit = true;	
 }
 
 void Game::onKeyUp(SDL_KeyboardEvent event)

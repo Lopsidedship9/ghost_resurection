@@ -24,6 +24,9 @@ public:
 	float elapsed_time;
 	int fps;
 	bool must_exit;
+	bool game_started;
+	int selected_menu_option;
+	
 
 	//audio
 	Synth synth;
