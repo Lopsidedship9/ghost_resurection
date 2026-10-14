@@ -3,8 +3,8 @@
 namespace
 {
     // Índices de las capas del mapa (empezando por 0).
-    const int OBJECTS_LAYER = 3; // Capa 4 de Tiled: Objetos interactuables
-    const int PLAYER_LAYER = 2; // Capa 3 de Tiled: personaje
+    const int OBJECTS_LAYER = 2; // Capa 4 de Tiled: Objetos interactuables
+    const int PLAYER_LAYER = 3; // Capa 3 de Tiled: personaje
     const int COLLISION_LAYER = 0; // Capa 1 de Tiled: edificios/colisiones
 }
 

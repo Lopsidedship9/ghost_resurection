@@ -4,7 +4,7 @@
 
 void updateHeartMarkers(GameMap* map)
 {
-    const int OBJECTS_LAYER = 3;
+    const int OBJECTS_LAYER = 2;
     const int TILE_BEFORE = 738;
     const int TILE_AFTER = 739;
 

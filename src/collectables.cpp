@@ -5,7 +5,7 @@
 namespace
 {
     // Índices de capas de mapilla.tmj, empezando en 0.
-    const int OBJECTS_LAYER = 3;
+    const int OBJECTS_LAYER = 2;
 
     // ID interno del mapa (GID de Tiled).
     const CollectibleDefinition COLLECTIBLE_DEFINITIONS[] =

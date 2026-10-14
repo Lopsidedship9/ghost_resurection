@@ -4,6 +4,7 @@
 #include "image.h"
 #include "movement.h"
 #include "collectables.h"
+#include "interactables.h"
 
 #include <cmath>
 #include <algorithm>
@@ -22,9 +23,6 @@ GameMap* world_map = NULL;           // todas las capas del .tmj (Suelo, Edifici
 bool tileset_ok = false;
 float cam_x = 0, cam_y = 0;    // camara en pixeles del mundo
 
-// Zoom de la camara: (preguntar)
-// 1.0 = normal, 2.0 = zoom x2 (se ve menos mundo), 0.5 = alejar (se ve mas mundo).
-const float CAMERA_ZOOM = 2.0f;
 
 // --- Jugador e inventario ---
 int player_x = 18;
@@ -101,6 +99,13 @@ void Game::update(double seconds_elapsed)
 		direction = MoveDirection::RIGHT;
 
 	movePlayer(world_map, player_x, player_y, direction, !must_exit);
+
+	if (Input::wasKeyPressed(SDL_SCANCODE_Z) ||
+		Input::wasKeyPressed(SDL_SCANCODE_X))
+	{
+		std::cout << "Funcion de interaccion llamada" << std::endl;
+		interactWithNearbyObject(world_map, player_x, player_y);
+	}
 
 	// Si el jugador está sobre un objeto recogible, se añade al inventario.
 	if (collectObjectAt(world_map, player_x, player_y, player_inventory))
