@@ -297,6 +297,19 @@ void Game::onKeyDown( SDL_KeyboardEvent event )
 		return; // Ignorar las demas teclas mientras se muestra el final.
 	}
 	
+	if (isGhostGameOver())
+	{
+		if (event.type == SDL_KEYDOWN &&
+			event.keysym.sym == SDLK_x)
+		{
+			resetGhostAI();
+			resetGameEnding();
+			game_started = false;
+			story_playing = true;
+			selected_menu_option = 0;
+		}
+	}
+	
 	if (!game_started)
 	{
 		StartMenuAction action = handleStartMenuKey(event.keysym.sym, selected_menu_option);
