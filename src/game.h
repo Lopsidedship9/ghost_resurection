@@ -26,6 +26,8 @@ public:
 	bool must_exit;
 	bool game_started;
 	int selected_menu_option;
+	bool story_playing;
+	bool audio_ok;
 	
 
 	//audio

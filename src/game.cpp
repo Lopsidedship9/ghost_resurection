@@ -6,6 +6,7 @@
 #include "collectables.h"
 #include "interactables.h"
 #include "screens.h"
+#include "audio_story.h"
 
 #include <cmath>
 #include <algorithm>
@@ -42,6 +43,8 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 	instance = this;
 	must_exit = false;
 	game_started = false;
+	story_playing = false;
+	audio_ok = false;
 	selected_menu_option = 0;
 
 	fps = 0;
@@ -54,7 +57,11 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 	sprite.load("data/spritesheet.tga"); //example to load an sprite
 	menu_play_image.loadTGA("data/menu_play_160x120.tga");
 	menu_exit_image.loadTGA("data/menu_exit_160x120.tga");
+	control_tutorial_image.loadTGA("data/tutorial_160x120.tga");
 
+	// Cargar la narracion en memoria al iniciar el juego.
+	if (!loadStoryAudio("data/historia.wav"))
+		std::cerr << "La partida continuara sin narracion." << std::endl;
 
 	// cargar tileset y mapa (todas las capas del .tmj)
 	tileset_ok = tileset.load("data/colored_packed.png");
@@ -71,6 +78,7 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 	//synth.osc1.amplitude = 0.5;
 }
 
+
 //what to do when the image has to be draw
 void Game::render(void)
 {
@@ -78,6 +86,15 @@ void Game::render(void)
 	Image framebuffer(160, 120); //do not change framebuffer size
 
 	framebuffer.fill( bgcolor );
+
+	//Si la historia se esta reproduciendo, mostrar la pantalla de tutorial y no actualizar el mundo.
+	if (story_playing)
+	{
+		framebuffer.drawImage(control_tutorial_image, 0, 0);
+		showFramebuffer(&framebuffer);
+		return;
+	}
+
 
 	// Antes de empezar la partida, mostrar el menu de inicio.
 	if (!game_started)
@@ -103,6 +120,18 @@ void Game::render(void)
 
 void Game::update(double seconds_elapsed)
 {
+	// Mientras se reproduce la historia, esperar a que termine.
+	if (story_playing)
+	{
+		if (!isStoryAudioPlaying())
+		{
+			story_playing = false;
+			game_started = true;
+			std::cout << "Narracion terminada. Empieza la partida." << std::endl;
+		}
+		return;
+	}
+
 	// No actualizar el mundo mientras se muestra el menu de inicio.
 	if (!game_started)
 		return;
@@ -188,18 +217,46 @@ void Game::update(double seconds_elapsed)
 //Keyboard event handler (sync input)
 void Game::onKeyDown( SDL_KeyboardEvent event )
 {
+	// Durante la narracion no permitir que se vuelva a seleccionar JUGAR.
+	if (story_playing)
+	{
+		if (event.keysym.sym == SDLK_ESCAPE) {
+			unloadStoryAudio();
+			story_playing = false;
+			must_exit = true;
+		}
+		return;
+	}
+	
 	if (!game_started)
 	{
 		StartMenuAction action = handleStartMenuKey(event.keysym.sym, selected_menu_option);
 		if (action == START_MENU_PLAY)
-			game_started = true;
+		{
+			if (playStoryAudio())
+			{
+				story_playing = true;
+			}
+			else
+			{
+				// Si falta el archivo o no se puede abrir, dejar jugar igualmente.
+				std::cerr << "Se iniciara la partida sin narracion." << std::endl;
+				game_started = true;
+			}
+		}
 		else if (action == START_MENU_EXIT)
+		{
+			unloadStoryAudio();
 			must_exit = true;
+		}
 		return;
 	}
 	
 	if (event.keysym.sym == SDLK_ESCAPE)
-		must_exit = true;	
+	{
+		unloadStoryAudio();
+		must_exit = true;
+	}
 }
 
 void Game::onKeyUp(SDL_KeyboardEvent event)
